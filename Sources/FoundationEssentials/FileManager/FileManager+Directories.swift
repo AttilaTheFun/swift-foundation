@@ -383,7 +383,9 @@ extension _FileManagerImpl {
                     return
                 }
                 let parent = path.deletingLastPathComponent()
-                if !parent.isEmpty {
+                // "/" is its own parent: where it cannot be seen (WASI with no
+                // preopen over it), stop there and let mkdir say why.
+                if !parent.isEmpty && parent != path {
                     try _create(path: parent, leafFile: false)
                 }
                 try fileManager.withFileSystemRepresentation(for: path) { pathFsRep in
