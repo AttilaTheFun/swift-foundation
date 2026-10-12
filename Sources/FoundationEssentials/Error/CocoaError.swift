@@ -174,8 +174,12 @@ extension CocoaError {
         return NSError(domain: NSCocoaErrorDomain, code: code.rawValue, userInfo: info)
     }
 #else
-    public static func error(_ code: CocoaError.Code, userInfo: [String : AnyHashable]? = nil, url: URL? = nil) -> Error {
-        var info: [String : AnyHashable] = userInfo ?? [:]
+    // Isomer: Apple's signature; what is kept are the string keys' hashable values.
+    public static func error(_ code: CocoaError.Code, userInfo: [AnyHashable : Any]? = nil, url: URL? = nil) -> Error {
+        var info: [String : AnyHashable] = [:]
+        for (key, value) in userInfo ?? [:] {
+            if let key = key.base as? String, let value = value as? AnyHashable { info[key] = value }
+        }
         if let url = url {
             info[NSURLErrorKey] = url
         }

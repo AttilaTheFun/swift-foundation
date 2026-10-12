@@ -296,7 +296,9 @@ open class FileManager : @unchecked Sendable {
         _impl.fileExists(atPath: path)
     }
 
-    open func fileExists(atPath path: String, isDirectory: inout Bool) -> Bool {
+    // Isomer: not public. Apple's takes an Objective-C `ObjCBool`; ask
+    // attributesOfItem(atPath:)[.type] instead.
+    internal func fileExists(atPath path: String, isDirectory: inout Bool) -> Bool {
         _impl.fileExists(atPath: path, isDirectory: &isDirectory)
     }
 

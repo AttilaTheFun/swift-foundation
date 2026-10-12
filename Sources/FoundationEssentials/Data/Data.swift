@@ -2344,8 +2344,13 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     }
 
     @inlinable // This is @inlinable as a generic, trivially forwarding function.
-    public mutating func withUnsafeMutableBytes<ResultType>(_ body: (UnsafeMutableRawBufferPointer) throws -> ResultType) rethrows -> ResultType {
-        return try _representation.withUnsafeMutableBytes(body)
+    public mutating func withUnsafeMutableBytes<ResultType, E: Error>(_ body: (UnsafeMutableRawBufferPointer) throws(E) -> ResultType) throws(E) -> ResultType {
+        // Isomer: typed throws, as Apple's Foundation declares it.
+        do {
+            return try _representation.withUnsafeMutableBytes(body)
+        } catch {
+            throw error as! E
+        }
     }
 
     // MARK: -
@@ -2443,8 +2448,9 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
         _append(buffer)
     }
 
-    @inlinable // This is @inlinable as trivially forwarding.
-    public mutating func append(contentsOf bytes: [UInt8]) {
+    // Isomer: not public, as in Apple's Foundation (its generic Sequence one is).
+    @inlinable @usableFromInline // This is @inlinable as trivially forwarding.
+    internal mutating func append(contentsOf bytes: [UInt8]) {
         bytes.withUnsafeBufferPointer { (buffer: UnsafeBufferPointer<UInt8>) -> Void in
             _append(buffer)
         }
@@ -2524,8 +2530,9 @@ public struct Data : Equatable, Hashable, RandomAccessCollection, MutableCollect
     /// - precondition: The bounds of `subrange` must be valid indices of the collection.
     /// - parameter subrange: The range in the data to replace. If `subrange.lowerBound == data.count && subrange.count == 0` then this operation is an append.
     /// - parameter data: The replacement data.
-    @inlinable // This is @inlinable as trivially forwarding.
-    public mutating func replaceSubrange(_ subrange: Range<Index>, with data: Data) {
+    // Isomer: not public, as in Apple's Foundation (its generic Collection one is).
+    @inlinable @usableFromInline // This is @inlinable as trivially forwarding.
+    internal mutating func replaceSubrange(_ subrange: Range<Index>, with data: Data) {
         data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) in
             _representation.replaceSubrange(subrange, with: buffer.baseAddress, count: buffer.count)
         }
