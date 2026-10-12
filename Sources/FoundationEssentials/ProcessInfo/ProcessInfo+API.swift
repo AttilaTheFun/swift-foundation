@@ -80,7 +80,8 @@ extension ProcessInfo {
     }
 }
 
-public struct OperatingSystemVersion: Hashable, Codable, Sendable {
+// Isomer: Apple's is a C struct, neither Hashable nor Codable.
+public struct OperatingSystemVersion: Sendable {
     public let majorVersion: Int
     public let minorVersion: Int
     public let patchVersion: Int

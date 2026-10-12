@@ -22,8 +22,9 @@ import ucrt
 
 @available(macOS 10.10, iOS 8.0, watchOS 2.0, tvOS 9.0, *)
 public struct Decimal: Sendable {
-    @_spi(SwiftCorelibsFoundation)
-    public typealias Mantissa = (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)
+    // Isomer: internal (Apple's Decimal has no Mantissa; its initializer
+    // below spells the tuple out, as Apple's does).
+    internal typealias Mantissa = (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)
 
     internal struct Storage: Sendable {
         var exponent: Int8
@@ -128,7 +129,7 @@ public struct Decimal: Sendable {
         _isNegative: UInt32 = 0,
         _isCompact: UInt32,
         _reserved: UInt32 = 0,
-        _mantissa: Mantissa
+        _mantissa: (UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16, UInt16)
     ) {
         let length: UInt8 = (UInt8(truncatingIfNeeded: _length) & 0xF) << 4
         let isNegative: UInt8 = UInt8(truncatingIfNeeded: _isNegative & 0x1) == 0 ? 0 : 0b00001000
@@ -142,8 +143,8 @@ public struct Decimal: Sendable {
         )
     }
 
-    @_spi(SwiftCorelibsFoundation)
-    public init(mantissa: UInt64, exponent: Int16, isNegative: Bool) {
+    // Isomer: internal, as the other declarations Apple's Decimal lacks.
+    internal init(mantissa: UInt64, exponent: Int16, isNegative: Bool) {
         var d = Decimal(mantissa)
         d._exponent += Int32(exponent)
         d._isNegative = isNegative ? 1 : 0
@@ -185,8 +186,8 @@ extension Decimal {
 extension Decimal {
 #if FOUNDATION_FRAMEWORK
 #else
-    @_spi(SwiftCorelibsFoundation)
-    public func toString(with locale: Locale? = nil) -> String {
+    // Isomer: internal (not in Apple's Decimal).
+    internal func toString(with locale: Locale? = nil) -> String {
         let separator: String
         if let locale = locale,
            let localizedSeparator = locale.decimalSeparator {
@@ -197,8 +198,8 @@ extension Decimal {
         return _toString(withDecimalSeparator: separator)
     }
     
-    @_spi(SwiftCorelibsFoundation)
-    public static func decimal(
+    // Isomer: internal (not in Apple's Decimal).
+    internal static func decimal(
         from stringView: String.UTF8View,
         decimalSeparator: String.UTF8View,
         matchEntireString: Bool

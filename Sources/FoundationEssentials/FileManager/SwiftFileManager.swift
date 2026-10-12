@@ -18,7 +18,8 @@ public struct FileAttributeType : Hashable, RawRepresentable, Sendable {
         self.rawValue = rawValue
     }
     
-    public init(_ rawValue: String) {
+    // Isomer: internal (Apple's FileAttributeType has init(rawValue:) only).
+    internal init(_ rawValue: String) {
         self.rawValue = rawValue
     }
     
@@ -80,7 +81,8 @@ public struct FileProtectionType : RawRepresentable, Sendable {
     public static let complete = Self(rawValue: "NSFileProtectionComplete")
     public static let completeUnlessOpen = Self(rawValue: "NSFileProtectionCompleteUnlessOpen")
     public static let completeUntilFirstUserAuthentication = Self(rawValue: "NSFileProtectionCompleteUntilFirstUserAuthentication")
-    public static let inactive = Self(rawValue: "NSFileProtectionCompleteWhenUserInactive")
+    // Isomer: internal (not one of Apple's FileProtectionType values).
+    internal static let inactive = Self(rawValue: "NSFileProtectionCompleteWhenUserInactive")
 }
 
 extension FileManager {
@@ -334,7 +336,8 @@ open class FileManager : @unchecked Sendable {
         _impl.string(withFileSystemRepresentation: str, length: len)
     }
     
-    open func withFileSystemRepresentation<R>(for path: String, _ body: (UnsafePointer<CChar>?) throws -> R) rethrows -> R {
+    // Isomer: internal (Apple's FileManager has fileSystemRepresentation(withPath:) instead).
+    internal func withFileSystemRepresentation<R>(for path: String, _ body: (UnsafePointer<CChar>?) throws -> R) rethrows -> R {
         try path.withFileSystemRepresentation(body)
     }
 
