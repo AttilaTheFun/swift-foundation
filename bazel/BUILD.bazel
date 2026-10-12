@@ -1,0 +1,16 @@
+# Build files for swift-foundation's dependencies (see MODULE.bazel), and the
+# headers the WebAssembly C build needs.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+exports_files(glob(["*.BUILD"]))
+
+# <stdarg.h>/<stddef.h> for C compiled for wasm: the WebAssembly C toolchain
+# does not list Clang's built-in header directory and Bazel refuses headers
+# from a directory the toolchain does not own.
+cc_library(
+    name = "wasi_compiler_headers",
+    hdrs = glob(["wasi/*.h"]),
+    includes = ["wasi"],
+    visibility = ["//:__pkg__"],
+)

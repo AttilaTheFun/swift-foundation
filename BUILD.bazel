@@ -1,0 +1,167 @@
+# swift-foundation's libraries as Bazel targets (the fork's own file; see
+# MODULE.bazel). The flags follow upstream's CMake build (CMakeLists.txt and
+# Sources/*/CMakeLists.txt), which is what the Swift toolchain ships.
+
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_swift//swift:swift.bzl", "swift_interop_hint", "swift_library")
+load("@rules_swift//swift:swift_compiler_plugin.bzl", "swift_compiler_plugin")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["LICENSE.md", "NOTICE.txt"])
+
+config_setting(
+    name = "wasi",
+    constraint_values = ["@platforms//os:wasi"],
+)
+
+config_setting(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+config_setting(
+    name = "android",
+    constraint_values = ["@platforms//os:android"],
+)
+
+# The availability macros upstream defines for every Foundation release
+# (CMakeLists.txt: _SwiftFoundation_availability_macros).
+_AVAILABILITY = [
+    flag
+    for version in [
+        "6.0.2",
+        "6.1",
+        "6.2",
+        "6.3",
+    ]
+    for flag in [
+        "-enable-experimental-feature",
+        "AvailabilityMacro=FoundationPreview %s:macOS 15, iOS 18, tvOS 18, watchOS 11" % version,
+    ]
+]
+
+_FEATURES = [
+    "-enable-experimental-feature",
+    "StrictConcurrency",
+    "-enable-upcoming-feature",
+    "InferSendableFromCaptures",
+    "-enable-upcoming-feature",
+    "MemberImportVisibility",
+    "-enable-experimental-feature",
+    "AccessLevelOnImport",
+]
+
+# wasi-libc's emulated getpid, signals and mmap (upstream's
+# _SwiftFoundation_wasi_libc_flags); the libraries are linked below.
+_WASI_SWIFT = [
+    "-Xcc",
+    "-D_WASI_EMULATED_GETPID",
+    "-Xcc",
+    "-D_WASI_EMULATED_SIGNAL",
+    "-Xcc",
+    "-D_WASI_EMULATED_MMAN",
+]
+
+_WASI_LINKOPTS = [
+    "-lwasi-emulated-getpid",
+    "-lwasi-emulated-signal",
+    "-lwasi-emulated-mman",
+]
+
+swift_interop_hint(
+    name = "_FoundationCShims_interop",
+    module_map = "Sources/_FoundationCShims/include/module.modulemap",
+    module_name = "_FoundationCShims",
+)
+
+cc_library(
+    name = "_FoundationCShims",
+    srcs = glob(["Sources/_FoundationCShims/*.c"]),
+    hdrs = glob([
+        "Sources/_FoundationCShims/include/*.h",
+    ]),
+    aspect_hints = [":_FoundationCShims_interop"],
+    copts = ["-w"] + select({
+        ":wasi": [
+            "-nobuiltininc",
+            "-D_WASI_EMULATED_GETPID",
+            "-D_WASI_EMULATED_SIGNAL",
+            "-D_WASI_EMULATED_MMAN",
+        ],
+        ":linux": ["-D_GNU_SOURCE"],
+        "//conditions:default": [],
+    }),
+    includes = ["Sources/_FoundationCShims/include"],
+    linkopts = select({
+        ":wasi": _WASI_LINKOPTS,
+        "//conditions:default": [],
+    }),
+    textual_hdrs = ["Sources/_FoundationCShims/include/module.modulemap"],
+    # For the C compile only: Swift's Clang importer has its own built-in
+    # headers, and these beside them would be redefinitions.
+    implementation_deps = select({
+        ":wasi": ["//bazel:wasi_compiler_headers"],
+        "//conditions:default": [],
+    }),
+)
+
+# #Predicate, #Expression and the bundle macros, for the host compiler.
+swift_compiler_plugin(
+    name = "FoundationMacros",
+    srcs = glob(["Sources/FoundationMacros/*.swift"]),
+    copts = _FEATURES,
+    module_name = "FoundationMacros",
+    deps = [
+        "@swift-syntax//:SwiftCompilerPlugin",
+        "@swift-syntax//:SwiftDiagnostics",
+        "@swift-syntax//:SwiftOperators",
+        "@swift-syntax//:SwiftParser",
+        "@swift-syntax//:SwiftParserDiagnostics",
+        "@swift-syntax//:SwiftSyntax",
+        "@swift-syntax//:SwiftSyntaxBuilder",
+        "@swift-syntax//:SwiftSyntaxMacros",
+    ],
+)
+
+swift_library(
+    name = "FoundationEssentials",
+    srcs = glob(["Sources/FoundationEssentials/**/*.swift"]),
+    copts = [
+        # Upstream's code, built as the toolchain builds it; its warnings are
+        # upstream's to fix.
+        "-suppress-warnings",
+        "-enable-experimental-feature",
+        "VariadicGenerics",
+        "-enable-experimental-feature",
+        "LifetimeDependence",
+        "-enable-experimental-feature",
+        "AddressableTypes",
+        "-enable-experimental-feature",
+        "AllowUnsafeAttribute",
+        "-enable-experimental-feature",
+        "BuiltinModule",
+    ] + _FEATURES + _AVAILABILITY + select({
+        ":wasi": _WASI_SWIFT,
+        ":linux": [
+            "-Xcc",
+            "-D_GNU_SOURCE",
+        ],
+        ":android": [
+            "-Xcc",
+            "-D_GNU_SOURCE",
+        ],
+        "//conditions:default": [],
+    }),
+    linkopts = select({
+        ":wasi": _WASI_LINKOPTS,
+        "//conditions:default": [],
+    }),
+    module_name = "FoundationEssentials",
+    package_name = "SwiftFoundation",
+    plugins = [":FoundationMacros"],
+    deps = [
+        ":_FoundationCShims",
+        "@swift_foundation_collections//:_FoundationCollections",
+    ],
+)
