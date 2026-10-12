@@ -165,3 +165,40 @@ swift_library(
         "@swift_foundation_collections//:_FoundationCollections",
     ],
 )
+
+# Formatting, locales, calendars and time zones beyond Essentials', over
+# ICU. ICU itself is the Swift SDK's (swift-foundation-icu, prebuilt as
+# lib_FoundationICU.a with its `_FoundationICU` module map in the SDK's
+# resources), linked by name as upstream's static build does.
+swift_library(
+    name = "FoundationInternationalization",
+    srcs = glob(["Sources/FoundationInternationalization/**/*.swift"]),
+    copts = [
+        "-suppress-warnings",
+        "-enable-experimental-feature",
+        "ImportMacroAliases",
+        "-Xfrontend",
+        "-public-autolink-library",
+        "-Xfrontend",
+        "_FoundationICU",
+    ] + _FEATURES + _AVAILABILITY + select({
+        ":wasi": _WASI_SWIFT,
+        ":linux": [
+            "-Xcc",
+            "-D_GNU_SOURCE",
+        ],
+        ":android": [
+            "-Xcc",
+            "-D_GNU_SOURCE",
+        ],
+        "//conditions:default": [],
+    }),
+    module_name = "FoundationInternationalization",
+    package_name = "SwiftFoundation",
+    plugins = [":FoundationMacros"],
+    deps = [
+        ":FoundationEssentials",
+        ":_FoundationCShims",
+        "@swift_foundation_collections//:_FoundationCollections",
+    ],
+)
